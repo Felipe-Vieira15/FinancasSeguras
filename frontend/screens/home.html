@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Finanças - Home</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <a href="home.html">Web Finanças</a>
+            <div class="user-info">
+                <span>Olá, Arthur!</span>
+                <a href="../../index.html" class="logout-button">Sair <i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <div class="content-box">
+            <div class="balance-section">
+                <h2>Saldo Disponível</h2>
+                <div class="balance-value">
+                    <span id="balance">R$ 4.750,80</span>
+                    <i class="fas fa-eye" id="toggle-balance"></i>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <a href="#" class="action-item">
+                    <div class="icon"><i class="fas fa-exchange-alt"></i></div>
+                    <span>Transferir</span>
+                </a>
+                <a href="#" class="action-item">
+                    <div class="icon"><i class="fab fa-pix"></i></div>
+                    <span>Área Pix</span>
+                </a>
+                <a href="#" class="action-item">
+                    <div class="icon"><i class="fas fa-barcode"></i></div>
+                    <span>Pagar</span>
+                </a>
+                <a href="receita.html" class="action-item">
+                    <div class="icon"><i class="fas fa-receipt"></i></div>
+                    <span>Extrato</span>
+                </a>
+            </div>
+
+            <div class="recent-activity">
+                <h3>Atividade Recente</h3>
+                <ul>
+                    <li class="transaction-item expense">
+                        <span>Compra - Supermercado</span>
+                        <span>- R$ 254,90</span>
+                    </li>
+                    <li class="transaction-item income">
+                        <span>Transferência Recebida - Felipe V.</span>
+                        <span>+ R$ 1.200,00</span>
+                    </li>
+                    <li class="transaction-item expense">
+                        <span>Pagamento Fatura Cartão</span>
+                        <span>- R$ 850,00</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>&copy; 2025 Web Finanças. Todos os direitos reservados.</p>
+        <h3>Arthur | Felipe Vieira</h3>
+    </div>
+    
+    <script>
+        const toggleBalance = document.getElementById('toggle-balance');
+        const balance = document.getElementById('balance');
+        const originalBalance = balance.textContent;
+        const hiddenBalance = 'R$ ●●●●,●●';
+        let isBalanceVisible = true;
+
+        toggleBalance.addEventListener('click', () => {
+            if (isBalanceVisible) {
+                balance.textContent = hiddenBalance;
+                toggleBalance.classList.remove('fa-eye');
+                toggleBalance.classList.add('fa-eye-slash');
+                isBalanceVisible = false;
+            } else {
+                balance.textContent = originalBalance;
+                toggleBalance.classList.remove('fa-eye-slash');
+                toggleBalance.classList.add('fa-eye');
+                isBalanceVisible = true;
+            }
+        });
+    </script>
+</body>
+</html>
