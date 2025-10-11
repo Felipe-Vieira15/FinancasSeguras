@@ -4,7 +4,7 @@ const express = require('express');
 
 router.use(express.json());
 
-const User = require('./model/user');
+const User = require('./models/user');
 
 console.log('Starting server...')
 
@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 database.db.sync({ force: false })
     .then(() => {
         router.listen(PORT, () => {
-            console.log(`Server is running in http://localhost:${PORT}/`);
+            console.log(`Server is running in http://localhost:${PORT}/api/`);
         })
     })
     .catch((error) => {
