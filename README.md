@@ -20,3 +20,5 @@ npm i jsonwebtoken
 npm i mysql2
 npm i express
 npm i bcrypt
+npm i bcryptjs
+npm install cookie-parser
