@@ -1,10 +1,8 @@
-const { DataTypes } = require("sequelize")
-const database = require("../config/database")
-const Category = require("./category")
+const { DataTypes } = require('sequelize');
+const { db } = require('../config/database');
+const Category = require('./category');
 
-const Transaction = database.define(
-  "transaction",
-  {
+const Transaction = db.define('transactions', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -72,4 +70,4 @@ const Transaction = database.define(
 Transaction.belongsTo(Category, { foreignKey: "categoryId", as: "category" })
 Category.hasMany(Transaction, { foreignKey: "categoryId", as: "transactions" })
 
-module.exports = Transaction
+module.exports = Transaction;

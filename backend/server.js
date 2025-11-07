@@ -10,7 +10,12 @@ const userRoutes = require('./routes/userRoutes');
 const authMiddleware = require('./middlewares/authMiddleware');
 const loginMiddleware = require('./middlewares/loginMiddleware');
 const registerMiddleware = require('./middlewares/registerMiddleware');
+const sanitizeInput = require('./middlewares/xss');
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(sanitizeInput);
 app.use(express.json());
 app.use(cookieParser());
 

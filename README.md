@@ -22,3 +22,5 @@ npm i express
 npm i bcrypt
 npm i bcryptjs
 npm install cookie-parser
+npm install csurf
+npm install sanitize-html
