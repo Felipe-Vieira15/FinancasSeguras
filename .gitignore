@@ -1,0 +1,64 @@
+# ----------------------------------------------------------------------
+# Configuração Geral do Node.js
+# ----------------------------------------------------------------------
+
+# Diretório de dependências do Node
+node_modules
+
+# Arquivo de bloqueio de pacotes (para NPM, se não quiser rastrear)
+# package-lock.json
+
+# Arquivos de logs
+npm-debug.log
+yarn-error.log
+.yarn-integrity
+
+# Variáveis de Ambiente e Chaves Secretas (CRÍTICO PARA SEGURANÇA)
+# .env e arquivos de ambiente do Node.js
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.DS_Store
+
+# ----------------------------------------------------------------------
+# Arquivos de Build e Compilação
+# ----------------------------------------------------------------------
+
+# Pastas de build ou distribuição
+/dist
+/build
+/out
+/public
+
+# ----------------------------------------------------------------------
+# Configurações do VS Code (Opcional, mas recomendado)
+# ----------------------------------------------------------------------
+
+.vscode/
+
+# ----------------------------------------------------------------------
+# Configurações Específicas do Projeto (Backend)
+# ----------------------------------------------------------------------
+
+# Se o Sequelize gerar arquivos de migração ou logs
+/backend/migrations/*.log
+/backend/logs/
+
+# Arquivos de testes de cobertura
+/coverage/
+
+# Arquivos temporários (ex: se usar SQLite localmente)
+*.sqlite
+*.sqlite-journal
+
+# ----------------------------------------------------------------------
+# Configurações Específicas do Projeto (Frontend)
+# ----------------------------------------------------------------------
+
+# Arquivos gerados no Frontend (como os PDFs de recibo)
+/frontend/*.pdf
+
+# Arquivos de cache de navegadores ou ferramentas de desenvolvimento
+/frontend/.cache/

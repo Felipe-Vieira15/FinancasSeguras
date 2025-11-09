@@ -1,31 +1,38 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 class AuthMiddleware {
-    static validateToken(req, res, next) {
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
+    async validateToken(req, res, next) {
+        const token = req.cookies.token;
+        console.log('--- VERIFICAÇÃO DE AUTENTICAÇÃO ---');
+        console.log(`Cookies Recebidos: ${JSON.stringify(req.cookies)}`);
+        
         if (!token) {
-            return res.status(401).json({ message: 'Acesso negado: Token não fornecido' });
+            console.log('ERRO: Token não encontrado nos cookies. Acesso negado (401).');
+            return res.status(401).json({ error: 'Token de autenticação não fornecido.' });
         }
 
         try {
-            const decoded = jwt.verify(token, JWT_SECRET_KEY);
-            req.user = decoded;
+            console.log(`Token encontrado: ${token.substring(0, 15)}...`);
+            
+            const decoded = jwt.verify(token, JWT_SECRET);
+            
+            req.user = decoded; 
+            console.log(`SUCESSO: Token verificado para o usuário ID: ${decoded.id}`);
+            
             next();
+
         } catch (error) {
-            if (error.name === 'TokenExpiredError') {
-                return res.status(401).json({ message: 'Acesso negado: Token expirado' });
-            }
-            if (error.name === 'JsonWebTokenError') {
-                return res.status(401).json({ message: 'Acesso negado: Token inválido' });
-            }
-            console.error('Erro de autenticação:', error);
-            return res.status(500).json({ message: 'Erro interno do servidor' });
+            console.log('ERRO FATAL NA VERIFICAÇÃO DO TOKEN:');
+            console.error(`Tipo de Erro: ${error.name}`);
+            console.error(`Mensagem: ${error.message}`);
+            
+            res.clearCookie('token'); 
+            
+            return res.status(401).json({ error: 'Token inválido ou expirado. Por favor, faça login novamente.' });
         }
     }
 }
 
-module.exports = AuthMiddleware;
+module.exports = new AuthMiddleware;

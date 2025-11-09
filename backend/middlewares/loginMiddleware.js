@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const MissingValues = require('./missing-values');
 const NotFound = require('./not-found');
-const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+const JWT_SECRET = process.env.JWT_SECRET;
 
 class LoginMiddleware {
     async login(req, res, next) {
@@ -27,9 +27,16 @@ class LoginMiddleware {
                 return res.status(401).send({ error: 'Senha invalida' });
             }
 
-            const token = jwt.sign({ id: user.id }, JWT_SECRET_KEY, { expiresIn: '1d' });
+            const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
 
-            res.json({message: 'Login realizado com sucesso', token });
+            res.cookie('token', token, {
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'Strict', 
+    maxAge: 24 * 60 * 60 * 1000, 
+});
+
+            res.json({message: 'Login realizado com sucesso'});
         } catch (error) {
             console.error(error);
             res.status(500).send({ error: 'Erro ao realizar login', error: error.message });

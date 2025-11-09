@@ -144,3 +144,39 @@ h2, h3 {
 .expense {
     background-color: #f8d7da;
 }
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #34495e; /* Fundo escuro */
+    color: white;
+    margin-bottom: 20px;
+}
+
+.balance-info {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.dashboard-main {
+    display: flex;
+    gap: 30px; /* Espaço entre as colunas */
+    padding: 0 30px;
+}
+
+.column {
+    flex: 1; /* Distribui o espaço igualmente */
+    min-width: 300px;
+    background-color: #f7f9fc;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}

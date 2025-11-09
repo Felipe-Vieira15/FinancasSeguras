@@ -7,19 +7,25 @@ const NotFound = require('../middlewares/not-found')
 
 class CategoryController {
     async createCategory(req, res) {
-      const name = req.body.name;
-      const type = req.body.type;
+        const { name, type } = req.body;
+        
+        const userId = req.user.id; 
+
+        if (!userId) {
+            return res.status(401).json({ error: 'ID do usuário não encontrado. Refaça o login.' });
+        }
 
         try {
-            if (!name || !type) {
-                throw new MissingValues({ name, type }, 'Algum campo obrigatorio faltando.');
-            }
+            const newCategory = await Category.create({
+                name,
+                type,
+                userId
+            });
 
-            const category = await Category.create({ name, type, userId: req.userId });
-            
-            return res.status(201).send({ success: true, category });
+            res.status(201).json({ message: 'Categoria criada com sucesso', data: newCategory });
         } catch (error) {
-            return res.status(400).send({ error: error.message });
+            console.error(error);
+            res.status(500).json({ error: 'Erro ao criar categoria', message: error.message });
         }
     }
 

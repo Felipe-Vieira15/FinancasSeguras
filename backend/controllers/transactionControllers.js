@@ -7,34 +7,32 @@ const ForbiddenError = require('../middlewares/forbidden');
 class TransactionController {
     async createTransaction(req, res) {
         const { description, value, date, type, categoryId } = req.body;
-        const userId = req.userId;
+        
+        const userId = req.user.id; 
+
+        if (!userId) {
+            return res.status(401).json({ error: 'ID do usuário não encontrado. Refaça o login.' });
+        }
 
         try {
-            if (!description || value === undefined || !date || !type || !categoryId) {
-                throw new MissingValues({ description, value, date, type, categoryId }, 'Algum campo obrigatório faltando para criar a transação.');
-            };
-
-            const transaction = await Transaction.create({
+            const newTransaction = await Transaction.create({
                 description,
                 value,
                 date,
                 type,
                 categoryId,
-                userId
-            });
-            
-            const createdTransaction = await Transaction.findByPk(transaction.id, {
-                include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'type'] }]
+                userId 
             });
 
-            return res.status(201).send({ success: true, transaction: createdTransaction });
+            res.status(201).json({ message: 'Transação criada com sucesso', data: newTransaction });
         } catch (error) {
-            return res.status(400).send({ error: error.message });
-        };
+            console.error(error);
+            res.status(500).json({ error: 'Erro ao criar transação', message: error.message });
+        }
     }
 
     async listAll(req, res) {
-        const userId = req.userId;
+        const userId = req.user.id;
         const { type } = req.query;
 
         const whereClause = { userId };
@@ -57,7 +55,7 @@ class TransactionController {
 
     async findById(req, res) {
         const id = req.params.id;
-        const userId = req.userId;
+        const userId = req.user.id;
 
         try {
             const transaction = await Transaction.findByPk(Number(id), {
@@ -81,7 +79,7 @@ class TransactionController {
     async updateTransaction(req, res) {
         const id = req.params.id;
         const updates = req.body;
-        const userId = req.userId;
+        const userId = req.user.id;
 
         try {
             const transaction = await Transaction.findByPk(Number(id));
@@ -121,7 +119,7 @@ class TransactionController {
 
     async deleteTransaction(req, res) {
         const id = req.params.id;
-        const userId = req.userId;
+        const userId = req.user.id;
 
         try {
             const transaction = await Transaction.findByPk(Number(id));

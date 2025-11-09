@@ -1,286 +1,379 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Minhas Finanças</title>
-    <link rel="stylesheet" href="./css/styles.css">
-</head>
-<body>
-    <header>
-        <div class="welcome">Bem-vindo(a), <span id="user-name">Usuário</span>!</div>
-        <button id="logout-button">Sair</button>
-    </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Minhas Finanças</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="dashboard-header">
+      <div class="user-info">
+        Bem-vindo(a), <span id="user-name">Usuário</span>!
+      </div>
+      <div class="balance-info">
+        Saldo Atual: R$ <span id="current-balance">0.00</span>
+      </div>
+      <button id="logout-button">Sair</button>
+    </header>
 
-    <div class="main-content">
-        <h2>Seu Saldo: R$ <span id="current-balance">0.00</span></h2>
-        
-        <section id="category-section">
-            <h3>Gerenciar Categorias</h3>
-            <form id="category-form">
-                <input type="text" id="category-name" placeholder="Nome da Categoria" required>
-                <select id="category-type" required>
-                    <option value="receita">Receita</option>
-                    <option value="despesa">Despesa</option>
-                </select>
-                <button type="submit">Adicionar Categoria</button>
-            </form>
-            <h4>Minhas Categorias:</h4>
-            <ul id="category-list">
-                </ul>
-        </section>
-        
-        <section id="transaction-section">
-            <h3>Nova Transação</h3>
-            <form id="transaction-form">
-                <input type="text" id="transaction-description" placeholder="Descrição" required>
-                <input type="number" id="transaction-value" placeholder="Valor" step="0.01" required>
-                <input type="date" id="transaction-date" required>
-                <select id="transaction-type" required>
-                    <option value="receita">Receita</option>
-                    <option value="despesa">Despesa</option>
-                </select>
-                <select id="transaction-category" required>
-                    <option value="">Selecione a Categoria</option>
-                </select>
-                <button type="submit">Salvar Transação</button>
-            </form>
+    <main class="dashboard-main">
+      <div class="column categories-column">
+        <h2>💰 Gestão de Categorias</h2>
 
-            <h3>Extrato de Transações</h3>
-            <table id="transaction-table">
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Descrição</th>
-                        <th>Categoria</th>
-                        <th>Valor</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </section>
-    </div>
+        <form id="category-form">
+          <input
+            type="text"
+            id="category-name"
+            placeholder="Nome da Categoria"
+            required
+          />
+          <select id="category-type" required>
+            <option value="">Tipo</option>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+          </select>
+          <button type="submit">Adicionar Categoria</button>
+        </form>
 
-    <script>
-        // Lógica de API (Centralizada)
-        const API_BASE_URL = 'http://localhost:3000/api';
+        <h3>Categorias Existentes</h3>
+        <ul id="category-list"></ul>
+      </div>
 
-        const apiFetch = async (endpoint, options = {}) => {
-            const url = `${API_BASE_URL}${endpoint}`;
-            options.credentials = 'include';
-            options.headers = {
-                'Content-Type': 'application/json',
-                ...options.headers
-            };
+      <div class="column transactions-column">
+        <h2>💸 Gerenciamento de Transações</h2>
 
-            const response = await fetch(url, options);
+        <form id="transaction-form">
+          <input
+            type="text"
+            id="transaction-description"
+            placeholder="Descrição"
+            required
+          />
+          <input
+            type="number"
+            id="transaction-value"
+            step="0.01"
+            placeholder="Valor"
+            required
+          />
+          <input type="date" id="transaction-date" required />
+          <select id="transaction-type" required>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+          </select>
+          <select id="transaction-category" required></select>
+          <button type="submit">Adicionar Transação</button>
+        </form>
 
-            if (response.status === 204) { return {}; }
-            const data = await response.json();
+        <h3>Extrato Detalhado</h3>
+        <div class="table-container">
+          <table id="transaction-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Descrição</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Erro desconhecido na API');
-            }
-            return data;
-        };
+    <script>
+      const API_BASE_URL = "http://localhost:3000/api";
 
-        // Métodos da API necessários na Dashboard
-        const API = {
-            checkAuth: () => apiFetch('/check-auth', { method: 'GET' }),
-            logout: () => apiFetch('/logout', { method: 'POST' }),
-            listCategories: () => apiFetch('/categories', { method: 'GET' }),
-            createCategory: (name, type) => apiFetch('/categories', { method: 'POST', body: JSON.stringify({ name, type }) }),
-            deleteCategory: (id) => apiFetch(`/categories/${id}`, { method: 'DELETE' }),
-            
-            listTransactions: () => apiFetch('/transactions', { method: 'GET' }),
-            createTransaction: (data) => apiFetch('/transactions', { method: 'POST', body: JSON.stringify(data) }),
-            deleteTransaction: (id) => apiFetch(`/transactions/${id}`, { method: 'DELETE' }),
-            // Adicione aqui outros métodos de CRUD (update) conforme necessário
-        };
+      const apiFetch = async (endpoint, options = {}) => {
+        const url = `${API_BASE_URL}${endpoint}`;
+        options.credentials = "include";
+        options.headers = {
+          "Content-Type": "application/json",
+          ...options.headers,
+        };
 
-        // Lógica de Autenticação/Inicialização da Dashboard
-        const initializeDashboard = async () => {
-            try {
-                // 1. Verifica autenticação
-                const authResponse = await API.checkAuth();
+        const response = await fetch(url, options);
 
-                if (authResponse.isAuthenticated) {
-                    document.getElementById('user-name').textContent = authResponse.user.name;
-                    document.getElementById('current-balance').textContent = authResponse.user.balance;
-                } else {
-                    window.location.href = 'login.html';
-                    return;
-                }
+        if (response.status === 204) {
+          return {};
+        }
+        const data = await response.json();
 
-                // 2. Evento de Logout
-                document.getElementById('logout-button').addEventListener('click', async () => {
-                    await API.logout();
-                    window.location.href = 'login.html';
-                });
+        if (!response.ok) {
+          throw new Error(data.error || "Erro desconhecido na API");
+        }
+        return data;
+      };
 
-                // 3. Inicializa as funções de CRUD
-                // Estas funções virão abaixo
-                loadCategories();
-                loadTransactions();
+      const API = {
+        checkAuth: () => apiFetch("/check-auth", { method: "GET" }),
+        logout: () => apiFetch("/logout", { method: "POST" }),
+        listCategories: () => apiFetch("/categories", { method: "GET" }),
+        createCategory: (name, type) =>
+          apiFetch("/categories", {
+            method: "POST",
+            body: JSON.stringify({ name, type }),
+          }),
+        deleteCategory: (id) =>
+          apiFetch(`/categories/${id}`, { method: "DELETE" }),
 
-            } catch (error) {
-                console.error('Erro de autenticação ou inicialização:', error);
-                window.location.href = 'login.html'; // Redireciona em caso de erro
-            }
-        };
+        listTransactions: () => apiFetch("/transactions", { method: "GET" }),
+        createTransaction: (data) =>
+          apiFetch("/transactions", {
+            method: "POST",
+            body: JSON.stringify(data),
+          }),
+        deleteTransaction: (id) =>
+          apiFetch(`/transactions/${id}`, { method: "DELETE" }),
+      };
 
-        // --- Lógica de CRUD (Placeholders) ---
+      const initializeDashboard = async () => {
+        try {
+          const authResponse = await API.checkAuth();
 
-        // Variável global para armazenar categorias para o dropdown de transações
-        let availableCategories = []; 
-        
-        // 1. CATEGORIAS (Listar, Criar, Deletar)
-        const renderCategories = (categories) => {
-            const list = document.getElementById('category-list');
-            const dropdown = document.getElementById('transaction-category');
-            list.innerHTML = '';
-            dropdown.innerHTML = '<option value="">Selecione a Categoria</option>';
-            
-            availableCategories = categories; // Salva para uso em transações
+          if (authResponse.isAuthenticated) {
+            document.getElementById("user-name").textContent =
+              authResponse.user.name;
+            // Corrigido: O saldo do usuário agora é retornado pelo backend
+            document.getElementById("current-balance").textContent =
+              parseFloat(authResponse.user.balance).toFixed(2);
+          } else {
+            window.location.href = "login.html";
+            return;
+          }
 
-            categories.forEach(cat => {
-                // Lista de categorias
-                const listItem = document.createElement('li');
-                listItem.innerHTML = `
-                    ${cat.name} (${cat.type === 'receita' ? 'R' : 'D'}) 
-                    <button onclick="deleteCategoryHandler(${cat.id})">Deletar</button>
-                `;
-                list.appendChild(listItem);
+          // O botão global de exportação foi removido para usar o botão individual por transação
+          // document.getElementById("export-pdf-button").addEventListener("click", exportToPDF);
+          
+          document
+            .getElementById("logout-button")
+            .addEventListener("click", async () => {
+              await API.logout();
+              window.location.href = "login.html";
+            });
 
-                // Dropdown de transações
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${cat.name} (${cat.type})`;
-                dropdown.appendChild(option);
-            });
-        };
+          loadCategories();
+          loadTransactions();
+        } catch (error) {
+          console.error("Erro de autenticação ou inicialização:", error);
+          window.location.href = "login.html";
+        }
+      };
 
-        const loadCategories = async () => {
-             try {
-                const categories = await API.listCategories();
-                renderCategories(categories);
-            } catch (error) {
-                console.error('Erro ao carregar categorias:', error);
-            }
-        };
+      let availableCategories = [];
 
-        const handleCategorySubmit = async (event) => {
-            event.preventDefault();
-            const name = document.getElementById('category-name').value;
-            const type = document.getElementById('category-type').value;
+      const renderCategories = (categories) => {
+        const list = document.getElementById("category-list");
+        const dropdown = document.getElementById("transaction-category");
+        list.innerHTML = "";
+        dropdown.innerHTML = '<option value="">Selecione a Categoria</option>';
 
-            try {
-                await API.createCategory(name, type);
-                document.getElementById('category-form').reset();
-                await loadCategories(); // Recarrega a lista
-            } catch (error) {
-                alert(`Erro ao criar categoria: ${error.message}`);
-            }
-        };
+        availableCategories = categories;
 
-        const deleteCategoryHandler = async (id) => {
-            if (!confirm('Tem certeza que deseja deletar esta categoria?')) return;
-            try {
-                await API.deleteCategory(id);
-                await loadCategories(); // Recarrega a lista
-                await loadTransactions(); // Recarrega transações, pois a categoria sumiu
-            } catch (error) {
-                alert(`Erro ao deletar categoria: ${error.message}`);
-            }
-        };
-        
-        // 2. TRANSAÇÕES (Listar, Criar, Deletar)
-        const renderTransactions = (transactions) => {
-            const tbody = document.querySelector('#transaction-table tbody');
-            tbody.innerHTML = '';
+        categories.forEach((cat) => {
+          const listItem = document.createElement("li");
+          listItem.innerHTML = `
+                    ${cat.name} (${cat.type === "receita" ? "R" : "D"}) 
+                    <button onclick="deleteCategoryHandler(${
+                      cat.id
+                    })">Deletar</button>
+                `;
+          list.appendChild(listItem);
 
-            transactions.forEach(tx => {
-                const row = tbody.insertRow();
-                row.className = tx.type === 'receita' ? 'income' : 'expense';
+          const option = document.createElement("option");
+          option.value = cat.id;
+          option.textContent = `${cat.name} (${cat.type})`;
+          dropdown.appendChild(option);
+        });
+      };
 
-                const categoryName = tx.category ? tx.category.name : 'N/A';
+      const loadCategories = async () => {
+        try {
+          const categories = await API.listCategories();
+          renderCategories(categories);
+        } catch (error) {
+          console.error("Erro ao carregar categorias:", error);
+        }
+      };
 
-                row.insertCell().textContent = new Date(tx.date).toLocaleDateString('pt-BR');
-                row.insertCell().textContent = tx.type === 'receita' ? 'R' : 'D';
-                row.insertCell().textContent = tx.description;
-                row.insertCell().textContent = categoryName;
-                row.insertCell().textContent = `R$ ${parseFloat(tx.value).toFixed(2)}`;
-                
-                row.insertCell().innerHTML = `
-                    <button onclick="deleteTransactionHandler(${tx.id})">Deletar</button>
-                    <button onclick="editTransactionHandler(${tx.id})">Editar</button>
-                `;
-            });
-        };
+      const handleCategorySubmit = async (event) => {
+        event.preventDefault();
+        const name = document.getElementById("category-name").value;
+        const type = document.getElementById("category-type").value;
 
-        const loadTransactions = async () => {
-            try {
-                const transactions = await API.listTransactions();
-                renderTransactions(transactions);
-            } catch (error) {
-                console.error('Erro ao carregar transações:', error);
-            }
-        };
+        try {
+          await API.createCategory(name, type);
+          document.getElementById("category-form").reset();
+          await loadCategories();
+        } catch (error) {
+          alert(`Erro ao criar categoria: ${error.message}`);
+        }
+      };
 
-        const handleTransactionSubmit = async (event) => {
-            event.preventDefault();
-            const data = {
-                description: document.getElementById('transaction-description').value,
-                value: parseFloat(document.getElementById('transaction-value').value),
-                date: document.getElementById('transaction-date').value,
-                type: document.getElementById('transaction-type').value,
-                categoryId: parseInt(document.getElementById('transaction-category').value)
-            };
+      const deleteCategoryHandler = async (id) => {
+        if (!confirm("Tem certeza que deseja deletar esta categoria?")) return;
+        try {
+          await API.deleteCategory(id);
+          await loadCategories();
+          await loadTransactions();
+        } catch (error) {
+          alert(`Erro ao deletar categoria: ${error.message}`);
+        }
+      };
 
-            try {
-                await API.createTransaction(data);
-                document.getElementById('transaction-form').reset();
-                await loadTransactions(); // Recarrega a lista
-                // TODO: Recarregar saldo do usuário
-            } catch (error) {
-                alert(`Erro ao criar transação: ${error.message}`);
-            }
-        };
+        let availableTransactions = [];
 
-        const deleteTransactionHandler = async (id) => {
-             if (!confirm('Tem certeza que deseja deletar esta transação?')) return;
-            try {
-                await API.deleteTransaction(id);
-                await loadTransactions(); // Recarrega a lista
-                // TODO: Recarregar saldo do usuário
-            } catch (error) {
-                alert(`Erro ao deletar transação: ${error.message}`);
-            }
-        };
+      const renderTransactions = (transactions) => {
+        availableTransactions = transactions;
 
-        const editTransactionHandler = (id) => {
-            alert(`Funcionalidade de Edição da Transação ${id} a ser implementada.`);
-            // A edição geralmente preenche o formulário existente com os dados da transação
-            // e altera o botão de "Salvar" para "Atualizar".
-        };
+        const tbody = document.querySelector("#transaction-table tbody");
+        tbody.innerHTML = "";
 
-        // --- Inicialização e Conexão dos Formulários ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // Inicializa a dashboard
-            initializeDashboard();
+        let totalBalance = 0;
 
-            // Conecta os handlers
-            document.getElementById('category-form').addEventListener('submit', handleCategorySubmit);
-            document.getElementById('transaction-form').addEventListener('submit', handleTransactionSubmit);
-        });
+        transactions.forEach((tx) => {
+          const row = tbody.insertRow();
 
-        // Torna os handlers globais para uso no HTML (onclick)
-        window.deleteCategoryHandler = deleteCategoryHandler;
-        window.deleteTransactionHandler = deleteTransactionHandler;
-        window.editTransactionHandler = editTransactionHandler;
-    </script>
-</body>
+          row.classList.add(tx.type === "receita" ? "income" : "expense");
+
+          const value = parseFloat(tx.value);
+          totalBalance += tx.type === "receita" ? value : -value;
+
+          const categoryName = tx.category ? tx.category.name : "Sem Categoria";
+          const formattedDate = new Date(tx.date).toLocaleDateString("pt-BR");
+          const formattedValue = `R$ ${value.toFixed(2)}`;
+
+          row.insertCell().textContent = formattedDate;
+          row.insertCell().textContent =
+            tx.type === "receita" ? "Receita" : "Despesa";
+          row.insertCell().textContent = tx.description;
+          row.insertCell().textContent = categoryName;
+          row.insertCell().textContent = formattedValue;
+
+          row.insertCell().innerHTML = `
+            <button onclick="deleteTransactionHandler(${tx.id})">Deletar</button>
+            <button onclick="exportReceiptToPDF(${tx.id})">Recibo (PDF)</button> 
+        `;
+        });
+
+        document.getElementById("current-balance").textContent =
+          totalBalance.toFixed(2);
+      };
+
+      const exportReceiptToPDF = (transactionId) => {
+        const { jsPDF } = window.jspdf;
+        
+        const tx = availableTransactions.find(t => t.id === transactionId);
+
+        if (!tx) {
+            alert("Dados da transação não encontrados.");
+            return;
+        }
+
+        const doc = new jsPDF();
+        const user = document.getElementById('user-name').textContent;
+        const typeLabel = tx.type.charAt(0).toUpperCase() + tx.type.slice(1);
+        const categoryName = tx.category ? tx.category.name : 'Sem Categoria';
+
+        doc.setFontSize(16);
+        doc.text(`Recibo de ${typeLabel} - FinançasSec`, 10, 10);
+        doc.setFontSize(10);
+        doc.text(`Gerado para: ${user}`, 10, 17);
+        doc.setLineWidth(0.5);
+        doc.line(10, 20, 200, 20); 
+
+        doc.setFontSize(12);
+        let y = 30;
+
+        const details = [
+            ['ID da Transação:', String(tx.id)], 
+            ['Tipo:', typeLabel],
+            ['Data:', new Date(tx.date).toLocaleDateString('pt-BR')],
+            ['Descrição:', tx.description],
+            ['Categoria:', categoryName],
+            ['Valor:', `R$ ${parseFloat(tx.value).toFixed(2)}`],
+        ];
+
+        details.forEach(detail => {
+            doc.text(detail[0], 10, y);
+            doc.text(detail[1], 50, y); 
+            y += 7;
+        });
+
+        doc.setFontSize(10);
+        doc.text(`Recibo gerado em: ${new Date().toLocaleString('pt-BR')}`, 10, y + 10);
+
+        doc.save(`recibo_${tx.type}_${tx.id}.pdf`);
+      };
+
+
+      const loadTransactions = async () => {
+        try {
+          const transactions = await API.listTransactions();
+          // availableTransactions é atualizada dentro de renderTransactions
+          renderTransactions(transactions); 
+        } catch (error) {
+          console.error("Erro ao carregar transações:", error);
+        }
+      };
+
+      const handleTransactionSubmit = async (event) => {
+        event.preventDefault();
+        const data = {
+          description: document.getElementById("transaction-description").value,
+          value: parseFloat(document.getElementById("transaction-value").value),
+          date: document.getElementById("transaction-date").value,
+          type: document.getElementById("transaction-type").value,
+          categoryId: parseInt(
+            document.getElementById("transaction-category").value
+          ),
+        };
+
+        try {
+          await API.createTransaction(data);
+          document.getElementById("transaction-form").reset();
+          await loadTransactions();
+        } catch (error) {
+          alert(`Erro ao criar transação: ${error.message}`);
+        }
+      };
+
+      const deleteTransactionHandler = async (id) => {
+        if (!confirm("Tem certeza que deseja deletar esta transação?")) return;
+        try {
+          await API.deleteTransaction(id);
+          await loadTransactions();
+        } catch (error) {
+          alert(`Erro ao deletar transação: ${error.message}`);
+        }
+      };
+
+      const editTransactionHandler = (id) => {
+        alert(
+          `Funcionalidade de Edição da Transação ${id} a ser implementada.`
+        );
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        initializeDashboard();
+
+        document
+          .getElementById("category-form")
+          .addEventListener("submit", handleCategorySubmit);
+        document
+          .getElementById("transaction-form")
+          .addEventListener("submit", handleTransactionSubmit);
+      });
+
+      window.deleteCategoryHandler = deleteCategoryHandler;
+      window.deleteTransactionHandler = deleteTransactionHandler;
+      window.editTransactionHandler = editTransactionHandler;
+      window.exportReceiptToPDF = exportReceiptToPDF;
+    </script>
+  </body>
 </html>
