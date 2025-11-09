@@ -1,151 +1,148 @@
-const Transaction = require("../models/transaction")
-const Category = require("../models/category")
-const MissingValues = require("../middlewares/missing-values")
-const NotFound = require("../middlewares/not-found")
-const { buildLinks } = require("../utils/linksHelper")
+const Transaction = require('../models/transaction');
+const Category = require('../models/category');
+const MissingValues = require('../middlewares/missing-values');
+const NotFound = require('../middlewares/not-found');
+const ForbiddenError = require('../middlewares/forbidden');
 
 class TransactionController {
-  async getAllTransactions(req, res) {
-    const transactions = await Transaction.findAll({
-      where: { userId: req.userId },
-      include: [{ model: Category, as: "category" }],
-    })
-    const baseUrl = `${req.protocol}://${req.get("host")}/api`
+    async createTransaction(req, res) {
+        const { description, value, date, type, categoryId } = req.body;
+        const userId = req.userId;
 
-    const result = transactions.map((t) => ({
-      transaction: t,
-      _links: buildLinks(baseUrl, "transactions", t.id),
-    }))
+        try {
+            if (!description || value === undefined || !date || !type || !categoryId) {
+                throw new MissingValues({ description, value, date, type, categoryId }, 'Algum campo obrigatório faltando para criar a transação.');
+            };
 
-    return res.status(200).json({
-      count: transactions.length,
-      items: result,
-    })
-  }
+            const transaction = await Transaction.create({
+                description,
+                value,
+                date,
+                type,
+                categoryId,
+                userId
+            });
+            
+            const createdTransaction = await Transaction.findByPk(transaction.id, {
+                include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'type'] }]
+            });
 
-  async getTransactionById(req, res) {
-    const id = Number(req.params.id)
-    if (!id) throw new MissingValues({ id })
-
-    const transaction = await Transaction.findOne({
-      where: { id, userId: req.userId },
-      include: [{ model: Category, as: "category" }],
-    })
-    if (!transaction)
-      throw new NotFound(`Transação ID '${id}' não encontrada!`)
-
-    const baseUrl = `${req.protocol}://${req.get("host")}/api`
-    return res.status(200).json({
-      transaction,
-      _links: buildLinks(baseUrl, "transactions", transaction.id),
-    })
-  }
-
-  async createTransaction(req, res) {
-    const { value, type, description, categoryId, date } = req.body
-
-    if (!value || !type || !categoryId || !date) {
-      throw new MissingValues({ value, type, categoryId, date })
+            return res.status(201).send({ success: true, transaction: createdTransaction });
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        };
     }
 
-    const category = await Category.findOne({ where: { id: categoryId, userId: req.userId } })
-    if (!category)
-      throw new NotFound(`Categoria ID '${categoryId}' não encontrada!`)
-    const transactionData = {
-      value,
-      type,
-      description,
-      categoryId,
-      date,
-      userId: req.userId
+    async listAll(req, res) {
+        const userId = req.userId;
+        const { type } = req.query;
+
+        const whereClause = { userId };
+        if (type) {
+            whereClause.type = type;
+        };
+
+        try {
+            const transactions = await Transaction.findAll({
+                where: whereClause,
+                order: [['date', 'DESC']],
+                include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'type'] }]
+            });
+
+            return res.status(200).send(transactions);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        };
     }
 
-    if (req.file) {
-      transactionData.receiptData = req.file.buffer
-      transactionData.receiptMimeType = req.file.mimetype
+    async findById(req, res) {
+        const id = req.params.id;
+        const userId = req.userId;
+
+        try {
+            const transaction = await Transaction.findByPk(Number(id), {
+                include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'type'] }]
+            });
+
+            if (!transaction) {
+                throw new NotFound(`Transação com ID ${id} não encontrada.`);
+            }
+
+            if (transaction.userId !== userId) {
+                throw new ForbiddenError('Acesso negado. Esta transação não pertence ao seu usuário.');
+            }
+
+            return res.status(200).send(transaction);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        };
     }
 
-    const transaction = await Transaction.create(transactionData)
+    async updateTransaction(req, res) {
+        const id = req.params.id;
+        const updates = req.body;
+        const userId = req.userId;
 
-    const baseUrl = `${req.protocol}://${req.get("host")}/api`
-    return res.status(201).json({
-      transaction,
-      _links: buildLinks(baseUrl, "transactions", transaction.id),
-    })
-  }
+        try {
+            const transaction = await Transaction.findByPk(Number(id));
 
-  async updateTransaction(req, res) {
-    const id = Number(req.params.id)
-    const { value, type, description, categoryId, date } = req.body
+            if (!transaction) {
+                throw new NotFound(`Transação com ID ${id} não encontrada.`);
+            }
 
-    if (!id) throw new MissingValues({ id })
+            if (transaction.userId !== userId) {
+                throw new ForbiddenError('Acesso negado. Você não tem permissão para atualizar esta transação.');
+            }
+            
+            delete updates.userId;
+            delete updates.id;
 
-    const transaction = await Transaction.findOne({ where: { id, userId: req.userId } })
-    if (!transaction)
-      throw new NotFound(`Transação ID '${id}' não encontrada!`)
+            if (Object.keys(updates).length === 0) {
+                 throw new MissingValues({}, 'Nenhum campo de atualização fornecido.');
+            }
 
-    if (categoryId) {
-      const category = await Category.findOne({ where: { id: categoryId, userId: req.userId } })
-      if (!category)
-        throw new NotFound(`Categoria ID '${categoryId}' não encontrada!`)
+            const [updatedRows] = await Transaction.update(updates, {
+                where: { id: Number(id) }
+            });
+
+            if (updatedRows === 0) {
+                 throw new Error('Falha ao atualizar a transação.');
+            }
+            
+            const updatedTransaction = await Transaction.findByPk(Number(id), {
+                include: [{ model: Category, as: 'category', attributes: ['id', 'name', 'type'] }]
+            });
+
+            return res.status(200).send(updatedTransaction);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        };
     }
 
-    if (req.file) {
-      transaction.receiptData = req.file.buffer
-      transaction.receiptMimeType = req.file.mimetype
+    async deleteTransaction(req, res) {
+        const id = req.params.id;
+        const userId = req.userId;
+
+        try {
+            const transaction = await Transaction.findByPk(Number(id));
+
+            if (!transaction) {
+                throw new NotFound(`Transação com ID ${id} não encontrada.`);
+            }
+
+            if (transaction.userId !== userId) {
+                throw new ForbiddenError('Acesso negado. Você não tem permissão para deletar esta transação.');
+            }
+
+            await Transaction.destroy({
+                where: { id: Number(id) }
+            });
+
+            return res.status(200).send({ success: true, message: 'Transação Deletada com sucesso.' });
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        };
     }
-
-    transaction.value = value || transaction.value
-    transaction.type = type || transaction.type
-    transaction.description = description || transaction.description
-    transaction.categoryId = categoryId || transaction.categoryId
-    transaction.date = date || transaction.date
-
-    await transaction.save()
-
-    const baseUrl = `${req.protocol}://${req.get("host")}/api`
-    return res.status(200).json({
-      transaction,
-      _links: buildLinks(baseUrl, "transactions", transaction.id),
-    })
-  }
-
-  async deleteTransaction(req, res) {
-    const id = Number(req.params.id)
-    if (!id) throw new MissingValues({ id })
-
-    const transaction = await Transaction.findOne({ where: { id, userId: req.userId } })
-    if (!transaction) {
-      throw new NotFound(`Transação ID '${id}' não encontrada!`)
-    }
-
-    await transaction.destroy()
-
-    const baseUrl = `${req.protocol}://${req.get("host")}/api`
-    return res.status(200).json({
-      message: `Transação ID '${id}' deletada com sucesso!`,
-      _links: buildLinks(baseUrl, "transactions", null, ["POST", "GET"]),
-    })
-  }
-
-  async getTransactionReceipt(req, res) {
-    const id = Number(req.params.id)
-    if (!id) throw new MissingValues({ id })
-
-    const transaction = await Transaction.findOne({
-      where: { id, userId: req.userId },
-      attributes: ["receiptData", "receiptMimeType"],
-    })
-
-    if (!transaction || !transaction.receiptData) {
-      throw new NotFound(
-        `Recibo para a Transação ID '${id}' não encontrado!`
-      )
-    }
-
-    res.setHeader("Content-Type", transaction.receiptMimeType)
-    res.send(transaction.receiptData)
-  }
 }
 
-module.exports = new TransactionController()
+module.exports = new TransactionController();

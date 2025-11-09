@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Finanças Pessoais</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Acessar Conta</h1>
+        <form id="login-form">
+            <input type="email" id="email" placeholder="E-mail" required>
+            <input type="password" id="password" placeholder="Senha" required>
+            <button type="submit">Entrar</button>
+        </form>
+        <p id="error-message" class="error"></p>
+        <p>Não tem conta? <a href="register.html">Cadastre-se</a></p>
+    </div>
+
+    <script>
+        // Lógica de API e Autenticação incorporada (simplificada)
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        const apiFetch = async (endpoint, options = {}) => {
+            const url = `${API_BASE_URL}${endpoint}`;
+            options.credentials = 'include';
+            options.headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            const response = await fetch(url, options);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro desconhecido na API');
+            }
+            return data;
+        };
+
+        const handleLogin = async (event) => {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = '';
+
+            try {
+                // Chama o endpoint de login
+                await apiFetch('/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                // Redireciona para a dashboard após login bem-sucedido
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                errorElement.textContent = error.message || 'Falha no login. Verifique suas credenciais.';
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', handleLogin);
+            }
+        });
+    </script>
+</body>
+</html>

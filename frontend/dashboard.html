@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Minhas Finanças</title>
+    <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="welcome">Bem-vindo(a), <span id="user-name">Usuário</span>!</div>
+        <button id="logout-button">Sair</button>
+    </header>
+
+    <div class="main-content">
+        <h2>Seu Saldo: R$ <span id="current-balance">0.00</span></h2>
+        
+        <section id="category-section">
+            <h3>Gerenciar Categorias</h3>
+            <form id="category-form">
+                <input type="text" id="category-name" placeholder="Nome da Categoria" required>
+                <select id="category-type" required>
+                    <option value="receita">Receita</option>
+                    <option value="despesa">Despesa</option>
+                </select>
+                <button type="submit">Adicionar Categoria</button>
+            </form>
+            <h4>Minhas Categorias:</h4>
+            <ul id="category-list">
+                </ul>
+        </section>
+        
+        <section id="transaction-section">
+            <h3>Nova Transação</h3>
+            <form id="transaction-form">
+                <input type="text" id="transaction-description" placeholder="Descrição" required>
+                <input type="number" id="transaction-value" placeholder="Valor" step="0.01" required>
+                <input type="date" id="transaction-date" required>
+                <select id="transaction-type" required>
+                    <option value="receita">Receita</option>
+                    <option value="despesa">Despesa</option>
+                </select>
+                <select id="transaction-category" required>
+                    <option value="">Selecione a Categoria</option>
+                </select>
+                <button type="submit">Salvar Transação</button>
+            </form>
+
+            <h3>Extrato de Transações</h3>
+            <table id="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script>
+        // Lógica de API (Centralizada)
+        const API_BASE_URL = 'http://localhost:3000/api';
+
+        const apiFetch = async (endpoint, options = {}) => {
+            const url = `${API_BASE_URL}${endpoint}`;
+            options.credentials = 'include';
+            options.headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            const response = await fetch(url, options);
+
+            if (response.status === 204) { return {}; }
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro desconhecido na API');
+            }
+            return data;
+        };
+
+        // Métodos da API necessários na Dashboard
+        const API = {
+            checkAuth: () => apiFetch('/check-auth', { method: 'GET' }),
+            logout: () => apiFetch('/logout', { method: 'POST' }),
+            listCategories: () => apiFetch('/categories', { method: 'GET' }),
+            createCategory: (name, type) => apiFetch('/categories', { method: 'POST', body: JSON.stringify({ name, type }) }),
+            deleteCategory: (id) => apiFetch(`/categories/${id}`, { method: 'DELETE' }),
+            
+            listTransactions: () => apiFetch('/transactions', { method: 'GET' }),
+            createTransaction: (data) => apiFetch('/transactions', { method: 'POST', body: JSON.stringify(data) }),
+            deleteTransaction: (id) => apiFetch(`/transactions/${id}`, { method: 'DELETE' }),
+            // Adicione aqui outros métodos de CRUD (update) conforme necessário
+        };
+
+        // Lógica de Autenticação/Inicialização da Dashboard
+        const initializeDashboard = async () => {
+            try {
+                // 1. Verifica autenticação
+                const authResponse = await API.checkAuth();
+
+                if (authResponse.isAuthenticated) {
+                    document.getElementById('user-name').textContent = authResponse.user.name;
+                    document.getElementById('current-balance').textContent = authResponse.user.balance;
+                } else {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // 2. Evento de Logout
+                document.getElementById('logout-button').addEventListener('click', async () => {
+                    await API.logout();
+                    window.location.href = 'login.html';
+                });
+
+                // 3. Inicializa as funções de CRUD
+                // Estas funções virão abaixo
+                loadCategories();
+                loadTransactions();
+
+            } catch (error) {
+                console.error('Erro de autenticação ou inicialização:', error);
+                window.location.href = 'login.html'; // Redireciona em caso de erro
+            }
+        };
+
+        // --- Lógica de CRUD (Placeholders) ---
+
+        // Variável global para armazenar categorias para o dropdown de transações
+        let availableCategories = []; 
+        
+        // 1. CATEGORIAS (Listar, Criar, Deletar)
+        const renderCategories = (categories) => {
+            const list = document.getElementById('category-list');
+            const dropdown = document.getElementById('transaction-category');
+            list.innerHTML = '';
+            dropdown.innerHTML = '<option value="">Selecione a Categoria</option>';
+            
+            availableCategories = categories; // Salva para uso em transações
+
+            categories.forEach(cat => {
+                // Lista de categorias
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    ${cat.name} (${cat.type === 'receita' ? 'R' : 'D'}) 
+                    <button onclick="deleteCategoryHandler(${cat.id})">Deletar</button>
+                `;
+                list.appendChild(listItem);
+
+                // Dropdown de transações
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = `${cat.name} (${cat.type})`;
+                dropdown.appendChild(option);
+            });
+        };
+
+        const loadCategories = async () => {
+             try {
+                const categories = await API.listCategories();
+                renderCategories(categories);
+            } catch (error) {
+                console.error('Erro ao carregar categorias:', error);
+            }
+        };
+
+        const handleCategorySubmit = async (event) => {
+            event.preventDefault();
+            const name = document.getElementById('category-name').value;
+            const type = document.getElementById('category-type').value;
+
+            try {
+                await API.createCategory(name, type);
+                document.getElementById('category-form').reset();
+                await loadCategories(); // Recarrega a lista
+            } catch (error) {
+                alert(`Erro ao criar categoria: ${error.message}`);
+            }
+        };
+
+        const deleteCategoryHandler = async (id) => {
+            if (!confirm('Tem certeza que deseja deletar esta categoria?')) return;
+            try {
+                await API.deleteCategory(id);
+                await loadCategories(); // Recarrega a lista
+                await loadTransactions(); // Recarrega transações, pois a categoria sumiu
+            } catch (error) {
+                alert(`Erro ao deletar categoria: ${error.message}`);
+            }
+        };
+        
+        // 2. TRANSAÇÕES (Listar, Criar, Deletar)
+        const renderTransactions = (transactions) => {
+            const tbody = document.querySelector('#transaction-table tbody');
+            tbody.innerHTML = '';
+
+            transactions.forEach(tx => {
+                const row = tbody.insertRow();
+                row.className = tx.type === 'receita' ? 'income' : 'expense';
+
+                const categoryName = tx.category ? tx.category.name : 'N/A';
+
+                row.insertCell().textContent = new Date(tx.date).toLocaleDateString('pt-BR');
+                row.insertCell().textContent = tx.type === 'receita' ? 'R' : 'D';
+                row.insertCell().textContent = tx.description;
+                row.insertCell().textContent = categoryName;
+                row.insertCell().textContent = `R$ ${parseFloat(tx.value).toFixed(2)}`;
+                
+                row.insertCell().innerHTML = `
+                    <button onclick="deleteTransactionHandler(${tx.id})">Deletar</button>
+                    <button onclick="editTransactionHandler(${tx.id})">Editar</button>
+                `;
+            });
+        };
+
+        const loadTransactions = async () => {
+            try {
+                const transactions = await API.listTransactions();
+                renderTransactions(transactions);
+            } catch (error) {
+                console.error('Erro ao carregar transações:', error);
+            }
+        };
+
+        const handleTransactionSubmit = async (event) => {
+            event.preventDefault();
+            const data = {
+                description: document.getElementById('transaction-description').value,
+                value: parseFloat(document.getElementById('transaction-value').value),
+                date: document.getElementById('transaction-date').value,
+                type: document.getElementById('transaction-type').value,
+                categoryId: parseInt(document.getElementById('transaction-category').value)
+            };
+
+            try {
+                await API.createTransaction(data);
+                document.getElementById('transaction-form').reset();
+                await loadTransactions(); // Recarrega a lista
+                // TODO: Recarregar saldo do usuário
+            } catch (error) {
+                alert(`Erro ao criar transação: ${error.message}`);
+            }
+        };
+
+        const deleteTransactionHandler = async (id) => {
+             if (!confirm('Tem certeza que deseja deletar esta transação?')) return;
+            try {
+                await API.deleteTransaction(id);
+                await loadTransactions(); // Recarrega a lista
+                // TODO: Recarregar saldo do usuário
+            } catch (error) {
+                alert(`Erro ao deletar transação: ${error.message}`);
+            }
+        };
+
+        const editTransactionHandler = (id) => {
+            alert(`Funcionalidade de Edição da Transação ${id} a ser implementada.`);
+            // A edição geralmente preenche o formulário existente com os dados da transação
+            // e altera o botão de "Salvar" para "Atualizar".
+        };
+
+        // --- Inicialização e Conexão dos Formulários ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa a dashboard
+            initializeDashboard();
+
+            // Conecta os handlers
+            document.getElementById('category-form').addEventListener('submit', handleCategorySubmit);
+            document.getElementById('transaction-form').addEventListener('submit', handleTransactionSubmit);
+        });
+
+        // Torna os handlers globais para uso no HTML (onclick)
+        window.deleteCategoryHandler = deleteCategoryHandler;
+        window.deleteTransactionHandler = deleteTransactionHandler;
+        window.editTransactionHandler = editTransactionHandler;
+    </script>
+</body>
+</html>

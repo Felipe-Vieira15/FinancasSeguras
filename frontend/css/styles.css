@@ -1,0 +1,146 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 400px;
+    margin: 100px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #1877f2;
+    margin-bottom: 20px;
+}
+
+form input:not([type="submit"]),
+form select,
+form button {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; 
+    font-size: 16px;
+}
+
+form button {
+    background-color: #1877f2;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    transition: background-color 0.3s;
+}
+
+form button:hover {
+    background-color: #145dbf;
+}
+
+.error {
+    color: #fa383e;
+    text-align: center;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+header {
+    background-color: #1877f2;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header button {
+    background-color: #fa383e;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+header button:hover {
+    background-color: #c72b30;
+}
+
+.main-content {
+    max-width: 1000px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h2, h3 {
+    border-bottom: 2px solid #f0f2f5;
+    padding-bottom: 5px;
+    margin-top: 30px;
+    color: #444;
+}
+
+#category-list {
+    list-style: none;
+    padding: 0;
+}
+
+#category-list li {
+    background-color: #f9f9f9;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#category-list button {
+    padding: 5px 10px;
+    background-color: #ffc107;
+    color: #333;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+#transaction-table th, #transaction-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+}
+
+#transaction-table th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.income {
+    background-color: #d4edda;
+}
+
+.expense {
+    background-color: #f8d7da;
+}

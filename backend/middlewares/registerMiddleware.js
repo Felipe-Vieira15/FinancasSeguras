@@ -9,6 +9,7 @@ const saltRounds = 10;
 class RegisterUser{
     async register(req, res) {
         const name = req.body.name;
+        const cpf = req.body.cpf;
         const email = req.body.email;
         const password = req.body.password;
         const hash = await bcrypt.hash(password, saltRounds);
@@ -20,7 +21,7 @@ class RegisterUser{
             });
 
             if (!name || !email || !password) {
-                throw new MissingValues({ name, email, password }, 'Todos os campos são obrigatórios.');
+                throw new MissingValues({ name, cpf, email, password }, 'Todos os campos são obrigatórios.');
             }
 
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

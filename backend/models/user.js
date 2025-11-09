@@ -9,7 +9,8 @@ const User = db.define('users', {
     },
     cpf: {
         type: DataTypes.STRING,
-        allowNull: true 
+        allowNull: false,
+        unique: true
     },
     email: {
         type: DataTypes.STRING,

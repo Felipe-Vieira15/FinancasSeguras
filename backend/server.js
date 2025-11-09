@@ -3,9 +3,12 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const database = require('./config/database');
+const cors = require('cors');
 const app = express();
 
 const userRoutes = require('./routes/userRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const transactionRoutes = require('./routes/transacrionRoutes');
 
 const authMiddleware = require('./middlewares/authMiddleware');
 const loginMiddleware = require('./middlewares/loginMiddleware');
@@ -18,6 +21,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(sanitizeInput);
 app.use(express.json());
 app.use(cookieParser());
+
+const frontendOrigin = process.env.FRONTEND_URL || 'http://127.0.0.1:5501';
+
+const corsOptions = {
+  origin: frontendOrigin,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 app.post('/api/login', loginMiddleware.login);
 app.post('/api/register', registerMiddleware.register);
@@ -36,17 +50,22 @@ app.get('/api/check-auth', (req, res) => {
 });
 
 app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes); 
+app.use('/api/transactions', transactionRoutes);
 
-app.use(express.static(path.join(__dirname, '..', 'frontend', 'public')));
-
-app.use('/src', express.static(path.join(__dirname, '..', 'frontend', 'src')));
+app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 app.use((req, res, next) => {
     if (req.method !== 'GET') {
         return next();
     }
 
-    res.sendFile(path.join(__dirname, '..', 'frontend', 'public', 'index.html'));
+    if (!req.path.startsWith('/api')) {
+         res.sendFile(path.join(__dirname, '..', 'frontend', 'login.html'));
+         return;
+    }
+    
+    next(); 
 });
 
 // app.get('/', (req, res) => {

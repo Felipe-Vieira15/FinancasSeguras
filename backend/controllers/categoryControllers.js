@@ -5,105 +5,102 @@ const ForbiddenError = require('../middlewares/forbidden')
 const MissingValues = require('../middlewares/missing-values')
 const NotFound = require('../middlewares/not-found')
 
-const { buildLinks } = require('../utils/linksHelper')
-
 class CategoryController {
-   async getAllCategories(req, res) {
-      const categories = await Category.findAll({ where: { userId: req.userId }, order: [['id', 'ASC']] })
-      const baseUrl = `${req.protocol}://${req.get('host')}/api`
+    async createCategory(req, res) {
+      const name = req.body.name;
+      const type = req.body.type;
 
-      const result = categories.map(c => ({
-         category: c,
-         _links: buildLinks(baseUrl, 'categories', c.id)
-      }))
+        try {
+            if (!name || !type) {
+                throw new MissingValues({ name, type }, 'Algum campo obrigatorio faltando.');
+            }
 
-      return res.status(200).json({
-         count: categories.length,
-         items: result
-      })
-   }
+            const category = await Category.create({ name, type, userId: req.userId });
+            
+            return res.status(201).send({ success: true, category });
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        }
+    }
 
-   async getCategoryById(req, res) {
-      const id = Number(req.params.id)
-      if (!id) throw new MissingValues({ id })
+    async listAll(req, res) {
+        try {
+            const categories = await Category.findAll();
 
-      const category = await Category.findOne({ where: { id, userId: req.userId } })
-      if (!category) throw new NotFound(`Categoria ID '${id}' não encontrada!`)
+            return res.status(200).send(categories);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        }
+    }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}/api`
-      return res.status(200).json({
-         category,
-         _links: buildLinks(baseUrl, 'categories', category.id)
-      })
-   }
+    async findById(req, res) {
+        const id = req.params.id;
 
-   async createCategory(req, res) {
-      const { name, type } = req.body
+        try {
+            const category = await findById(Number(id));
 
-      if (!name || !type) throw new MissingValues({ name, type })
+            if (!category) {
+                throw new NotFound(`Categoria com ID ${id} não encontrada.`);
+            }
 
-      if (!['receita', 'despesa'].includes(type))
-         throw new Conflict(`O tipo '${type}' é inválido! Use 'receita' ou 'despesa'.`)
+            return res.status(200).send(category);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        }
+    }
 
-      const existingCategory = await Category.findOne({ where: { name, userId: req.userId } })
-      if (existingCategory)
-         throw new Conflict(`Já existe uma categoria com o nome '${name}'!`)
+    async updateCategory(req, res) {
+        const id = req.params.id;
+        const name = req.body.name;
+        const type = req.body.type;
 
-      const category = await Category.create({ name, type, userId: req.userId })
+        try {
+            const category = await Category.findByPk(Number(id));
 
-      const baseUrl = `${req.protocol}://${req.get('host')}/api`
-      return res.status(201).json({
-         message: 'Categoria criada com sucesso!',
-         category,
-         _links: buildLinks(baseUrl, 'categories', category.id)
-      })
-   }
+            if (!category) {
+                throw new NotFound(`Categoria com ID ${id} não encontrada.`);
+            }
 
-   async updateCategory(req, res) {
-      const id = Number(req.params.id)
-      const { name, type } = req.body
+            if (!name || !type) {
+                throw new MissingValues({ name, type }, 'Algum campo obrigatorio faltando.');
+            }
 
-      if (!id || !name || !type) throw new MissingValues({ id, name, type })
+            await Category.update(
+                { name },
+                { type },
+                {
+                    where: {
+                        id: Number(id)
+                    }
+                }
+            );
+            return res.status(200).send(category);
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        }
+    }
 
-      const category = await Category.findOne({ where: { id, userId: req.userId } })
-      if (!category) throw new NotFound(`Categoria ID '${id}' não encontrada!`)
+    async deleteCategory(req, res) {
+        const id = req.params.id;
 
-      const duplicate = await Category.findOne({ where: { name, userId: req.userId } })
-      if (duplicate && duplicate.id !== id)
-         throw new Conflict(`Já existe uma categoria com o nome '${name}'!`)
+        try {
+            const category = await Category.findByPk(Number(id));
 
-      if (!['receita', 'despesa'].includes(type))
-         throw new Conflict(`O tipo '${type}' é inválido! Use 'receita' ou 'despesa'.`)
+            if (!category) {
+                throw new NotFound(`Categoria com ID ${id} não encontrada.`);
+            }
 
-      await category.update({ name, type })
+            await Category.destroy({
+                where: {
+                    id: Number(id)
+                }
+            });
 
-      const baseUrl = `${req.protocol}://${req.get('host')}/api`
-      return res.status(200).json({
-         message: `Categoria ID '${id}' atualizada com sucesso!`,
-         category,
-         _links: buildLinks(baseUrl, 'categories', category.id)
-      })
-   }
-
-   async deleteCategory(req, res) {
-      const id = Number(req.params.id)
-      if (!id) throw new MissingValues({ id })
-
-      const category = await Category.findOne({ where: { id, userId: req.userId } })
-      if (!category) throw new NotFound(`Categoria ID '${id}' não encontrada!`)
-
-      const transactions = await Transaction.findAll({ where: { categoryId: id } })
-      if (transactions.length > 0)
-         throw new ForbiddenError(`Não é possível excluir categoria com transações associadas!`)
-
-      await category.destroy()
-
-      const baseUrl = `${req.protocol}://${req.get('host')}/api`
-      return res.status(200).json({
-         message: `Categoria ID '${id}' deletada com sucesso!`,
-         _links: buildLinks(baseUrl, 'categories', id, ['POST', 'GET'])
-      })
-   }
+            return res.status(200).send({ success: true, message: 'Categoria Deletada' });
+        } catch (error) {
+            return res.status(400).send({ error: error.message });
+        }
+    }
 }
 
-module.exports = new CategoryController()
+module.exports = new CategoryController();
